@@ -1,4 +1,6 @@
 local images = require("images")
+local texts = require("texts")
+local geomtry = require("geometry")
 
 all_buttons = {}
 
@@ -6,27 +8,45 @@ Button = {}
 
 function Button:new(config)
     obj = {
-        event_listeners={
-            left_click={}
-        }
+        event_listeners = {
+            left_click = {}
+        },
+        enabled = true
     }
 
     setmetatable(obj, self)
     self.__index = self
 
+    local pos = config.pos or { x = 100, y = 100 }
+
     local btn_config = {
-        pos = config.pos or {x=100, y=100},
+        pos = pos,
         size = config.size or {
-            width = 50,
-            height = 50
+            width = 60,
+            height = 60
         },
         draggable = false,
         visible = true,
-        color = {255, 0, 255},
+        color = { 255, 0, 255 },
     }
 
     obj.image = images.new(btn_config)
     obj.image:show()
+
+    obj.label = texts.new()
+
+    -- TODO what size is the font height/width? Do a rough calculation based on several values
+
+    local label_x, label_y = geomtry.center(pos.x, pos.y, 60, 60, 50, 16)
+
+    -- TODO add a move method for button that also moves the label.
+    obj.label:pos(label_x, label_y)
+    obj.label:color(0, 0, 0)
+    obj.label:stroke_alpha(1)
+    obj.label:bg_visible(false)
+    obj.label:show()
+
+
 
     obj.hovering = false
 
@@ -35,6 +55,9 @@ function Button:new(config)
     return obj
 end
 
+function Button:text(value)
+    self.label:text(value)
+end
 
 function Button:move(x, y)
     self.x = x
@@ -46,7 +69,7 @@ function Button:color(r, g, b)
 end
 
 function Button:add_event_listener(event, callback)
-    -- TODO-Andrey read about lua arrays and tables - best way to do this?
+    -- TODO read about lua arrays and tables - best way to do this?
     -- event is a string
 
     if not self.event_listeners[event] then
@@ -56,23 +79,22 @@ function Button:add_event_listener(event, callback)
     table.insert(self.event_listeners[event], callback)
 end
 
-
 windower.register_event('mouse', function(type, x, y, delta, blocked)
     if blocked then
         return
     end
 
     for _, button in pairs(all_buttons) do
-        local hovering = button.image:hover(x,y)
+        local hovering = button.image:hover(x, y)
 
         for _, click_event_listener in pairs(button.event_listeners["left_click"]) do
             -- Mouse release
             -- TODO only do this if the button has a click event listener
-            if type == 1 and hovering then
+            if type == 1 and button.enabled and hovering then
                 return true
             end
 
-            if type == 2 and hovering then
+            if type == 2 and button.enabled and hovering then
                 return click_event_listener(button)
             end
         end
